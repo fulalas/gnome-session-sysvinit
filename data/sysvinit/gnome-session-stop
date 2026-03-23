@@ -2,11 +2,14 @@
 # gnome-session-stop - Stop GNOME session components for sysvinit systems
 # Sends SIGTERM to all session processes tracked by PID files
 
-PIDDIR="${XDG_RUNTIME_DIR}"
-if [ -z "$PIDDIR" ]; then
+if [ -z "$XDG_RUNTIME_DIR" ]; then
     echo "XDG_RUNTIME_DIR is not set" >&2
     exit 1
 fi
+
+# Use the session-specific rundir so we only touch our own PID files,
+# not those of a new session that may have already started.
+PIDDIR="${GNOME_SESSION_RUNDIR:-$XDG_RUNTIME_DIR}"
 
 kill_by_pidfile() {
     pidfile="$PIDDIR/$1.pid"
@@ -63,3 +66,8 @@ for pidfile in "$PIDDIR"/gsd-*.pid "$PIDDIR"/gnome-shell.pid \
         rm -f "$pidfile"
     fi
 done
+
+# Remove the session-specific rundir entirely so nothing stale is left
+if [ -n "$GNOME_SESSION_RUNDIR" ] && [ "$GNOME_SESSION_RUNDIR" != "$XDG_RUNTIME_DIR" ]; then
+    rm -rf "$GNOME_SESSION_RUNDIR"
+fi

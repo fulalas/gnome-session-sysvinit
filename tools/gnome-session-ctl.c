@@ -215,8 +215,10 @@ do_monitor_leader (void)
 
         data.loop = g_main_loop_new (NULL, TRUE);
 
-        fifo_name = g_strdup_printf ("%s/gnome-session-leader-fifo",
-                                     g_get_user_runtime_dir ());
+        const char *session_rundir = g_getenv ("GNOME_SESSION_RUNDIR");
+        if (!session_rundir)
+                session_rundir = g_get_user_runtime_dir ();
+        fifo_name = g_strdup_printf ("%s/gnome-session-leader-fifo", session_rundir);
         res = mkfifo (fifo_name, 0666);
         if (res < 0 && errno != EEXIST)
                 g_warning ("Error creating FIFO: %m");

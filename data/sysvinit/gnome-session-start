@@ -7,11 +7,14 @@
 SESSION_TYPE="${1:-wayland}"
 SESSION_NAME="${2:-gnome}"
 
-PIDDIR="${XDG_RUNTIME_DIR}"
-if [ -z "$PIDDIR" ]; then
+if [ -z "$XDG_RUNTIME_DIR" ]; then
     echo "XDG_RUNTIME_DIR is not set" >&2
     exit 1
 fi
+
+# Use session-specific rundir created by the leader, so that stop scripts
+# from concurrent sessions do not interfere with each other.
+PIDDIR="${GNOME_SESSION_RUNDIR:-$XDG_RUNTIME_DIR}"
 
 export XDG_CURRENT_DESKTOP=GNOME
 export XDG_SESSION_TYPE="$SESSION_TYPE"

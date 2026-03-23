@@ -18,6 +18,7 @@
  */
 
 #include <string.h>
+#include <unistd.h>
 #include <config.h>
 
 #include <glib.h>
@@ -97,8 +98,14 @@ start_script_exited_cb (GPid     pid,
         if (status != 0)
                 g_warning ("Session start script exited with status %d", status);
 
-        g_debug ("Session start script exited, quitting leader");
-        g_main_loop_quit (ctx->loop);
+        /* Signal the monitor to run gnome-session-stop and exit.
+         * The leader stays alive until the monitor closes its FIFO end (HUP),
+         * so GDM only sees us exit after cleanup is fully sequenced. */
+        g_debug ("Session start script exited, signaling monitor to shut down");
+        if (ctx->fifo_fd >= 0 && write (ctx->fifo_fd, "S", 1) < 0) {
+                g_warning ("Failed to signal shutdown to monitor: %m");
+                g_main_loop_quit (ctx->loop);
+        }
 }
 
 static void
@@ -138,9 +145,8 @@ main (int argc, char **argv)
         g_auto (Leader) ctx = { .fifo_fd = -1, .start_script_pid = 0 };
         const char *session_name = NULL;
         const char *debug_string = NULL;
+        g_autofree char *session_rundir = NULL;
         g_autofree char *fifo_path = NULL;
-        g_autofree char *home_dir = NULL;
-        g_autofree char *config_dir = NULL;
         struct stat statbuf;
 
         if (argc < 2)
@@ -149,22 +155,10 @@ main (int argc, char **argv)
 
         char const *user = g_getenv ("USER");
         if (!user)
-                user = "gdm-greeter";
+                user = "gdm";
         g_info ("User is: %s", user);
 
-        /* For gdm-greeter users, set up a persistent home dir.
-         * strncmp because we also have gdm-greeter-{2,3,4,...} */
-        if (strncmp (user, "gdm-greeter", sizeof ("gdm-greeter")) == 0) {
-                home_dir = g_strdup_printf ("/var/lib/%s", user);
-                config_dir = g_strdup_printf ("%s/.config", home_dir);
-                g_setenv ("XDG_CONFIG_HOME", config_dir, TRUE);
-                g_setenv ("HOME", home_dir, TRUE);
-        } else {
-                g_warning ("The gdm-greeter user wasn't found. Expect stuff to break.");
-        }
-
         char const *session_type = g_getenv ("XDG_SESSION_TYPE");
-        char const *home = g_getenv ("HOME");
         g_info ("XDG_RUNTIME_DIR: %s", g_getenv ("XDG_RUNTIME_DIR"));
 
         debug_string = g_getenv ("GNOME_SESSION_DEBUG");
@@ -188,9 +182,18 @@ main (int argc, char **argv)
 
         g_message ("Starting GNOME session: type=%s name=%s", session_type, session_name);
 
-        /* Create the FIFO before starting the session, so the monitor
-         * can open it immediately */
-        fifo_path = g_build_filename (g_get_user_runtime_dir (),
+        /* Create a session-specific run directory so that stop scripts from
+         * an old session cannot accidentally kill processes from a new session
+         * that starts before the old cleanup finishes. */
+        session_rundir = g_strdup_printf ("%s/gnome-session-%d",
+                                          g_get_user_runtime_dir (), (int) getpid ());
+        if (g_mkdir_with_parents (session_rundir, 0700) < 0)
+                g_warning ("Failed to create session rundir %s: %m", session_rundir);
+        g_setenv ("GNOME_SESSION_RUNDIR", session_rundir, TRUE);
+
+        /* Create the FIFO inside the session rundir before starting the session,
+         * so the monitor can open it immediately. */
+        fifo_path = g_build_filename (session_rundir,
                                       "gnome-session-leader-fifo",
                                       NULL);
         if (mkfifo (fifo_path, 0666) < 0 && errno != EEXIST)
