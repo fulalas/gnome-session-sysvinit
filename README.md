@@ -2,15 +2,13 @@
 
 This is a port of [gnome-session-openrc](https://github.com/swagtoy/gnome-session-openrc/) to sysvinit systems (e.g. PorteuX/Slackware).
 
-It creates a new session leader, ctl tool, and helper scripts to make GNOME session work without systemd.
-
-Instead of using systemd or OpenRC user services, this port uses simple shell scripts (`gnome-session-start` and `gnome-session-stop`) to manage session components. The session leader spawns the start script and monitors a FIFO for shutdown signaling.
+It uses simple shell scripts (`gnome-session-start` and `gnome-session-stop`) to manage session components. The session leader spawns the start script and monitors a FIFO for shutdown signaling.
 
 This requires **elogind** for session/seat management.
 
 # Applying the changes
 
-Simply clone this repository and copy/replace its content to gnome-session source code, and build it normally.
+Simply clone this repository and copy/replace its content to `gnome-session` source code, and build it normally.
 
 # How it works
 
