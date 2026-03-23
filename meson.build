@@ -88,32 +88,13 @@ session_deps = [
   dependency('json-glib-1.0', version: '>= 0.10')
 ]
 
-libsystemd_dep = dependency('libsystemd', version: '>= 209', required: false)
-if libsystemd_dep.found()
-  config_h.set('SYSTEMD_STRICT_ENV',
-                libsystemd_dep.version().version_compare('< 248'))
+elogind_dep = dependency('libelogind', version: '>=209', required: true)
   session_bin_deps = session_deps + [
-    libsystemd_dep,
-    dependency('gio-unix-2.0', version: glib_req_version),
-  ]
-else
-  elogind_dep = dependency('libelogind', version: '>=209', required: true)
-  session_bin_deps = session_deps + [
-    elogind_dep,
-    dependency('gio-unix-2.0', version: glib_req_version),
-  ]
-endif
+  elogind_dep,
+  dependency('gio-unix-2.0', version: glib_req_version),
+]
 
-if libsystemd_dep.found()
-  systemd_userunitdir = get_option('systemduserunitdir')
-  if systemd_userunitdir == ''
-    systemd_dep = dependency('systemd', version: '>= 242', required: true)
-    systemd_userunitdir = systemd_dep.get_variable(pkgconfig: 'systemduserunitdir',
-                                                   pkgconfig_define: ['prefix', session_prefix])
-  endif
-endif
-
-use_sysvinit = not libsystemd_dep.found()
+use_sysvinit = true
 
 config_h.set('USE_SYSVINIT', use_sysvinit)
 
