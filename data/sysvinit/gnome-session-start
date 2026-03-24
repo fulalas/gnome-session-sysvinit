@@ -139,7 +139,6 @@ done
 unset _display_retries
 
 if [ -z "$XAUTHORITY" ]; then
-	sleep 0.1
     for _f in "$XDG_RUNTIME_DIR"/.mutter-Xwaylandauth.*; do
         [ -f "$_f" ] && export XAUTHORITY="$_f" && break
     done
