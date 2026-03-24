@@ -151,28 +151,13 @@ fi
 dbus-update-activation-environment --all
 
 # Start GNOME Settings Daemon components
-GSD_DAEMONS="
-    gsd-a11y-settings
-    gsd-color
-    gsd-datetime
-    gsd-housekeeping
-    gsd-keyboard
-    gsd-media-keys
-    gsd-power
-    gsd-print-notifications
-    gsd-rfkill
-    gsd-screensaver-proxy
-    gsd-sharing
-    gsd-sound
-    gsd-usb-protection
-"
-
-for daemon in $GSD_DAEMONS; do
-    if [ -x "/usr/libexec/$daemon" ]; then
-        /usr/libexec/$daemon &
-        write_pid "$daemon" $!
-    fi
+for _gsd in /usr/libexec/gsd-*; do
+    [ -x "$_gsd" ] || continue
+    daemon="${_gsd##*/}"
+    "$_gsd" &
+    write_pid "$daemon" $!
 done
+unset _gsd daemon
 
 # Signal session initialization complete
 /usr/libexec/gnome-session-ctl --signal-init
