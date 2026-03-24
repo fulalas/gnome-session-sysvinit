@@ -6,9 +6,9 @@ It uses simple shell scripts (`gnome-session-start` and `gnome-session-stop`) to
 
 This requires **elogind** for session/seat management.
 
-# Applying the changes
+# Building
 
-Simply clone this repository and copy/replace its content to `gnome-session` source code, and build it normally.
+Simply clone this repository and copy/replace its content to `gnome-session` source code folder, and build it normally.
 
 # How it works
 
