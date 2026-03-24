@@ -29,8 +29,25 @@ case $SHELL in
         zhome=${ZDOTDIR:-$HOME}
         [ -f $zdir/zprofile ] && . $zdir/zprofile
         [ -f $zhome/.zprofile ] && . $zhome/.zprofile
+        [ -f $zdir/zlogin ] && . $zdir/zlogin
+        [ -f $zhome/.zlogin ] && . $zhome/.zlogin
+        emulate -R sh
         ;;
-    *)
+    */csh|*/tcsh)
+        # [t]cshrc is always sourced automatically.
+        # Note that sourcing csh.login after .cshrc is non-standard.
+        wlsess_tmp=`mktemp /tmp/wlsess-env-XXXXXX`
+        $SHELL -c "if (-f /etc/csh.login) source /etc/csh.login; if (-f ~/.login) source ~/.login; /bin/sh -c 'export -p' >! $wlsess_tmp"
+        . $wlsess_tmp
+        rm -f $wlsess_tmp
+        ;;
+    */fish)
+        xsess_tmp=`mktemp /tmp/xsess-env-XXXXXX`
+        $SHELL --login -c "/bin/sh -c 'export -p' > $xsess_tmp"
+        . $xsess_tmp
+        rm -f $xsess_tmp
+        ;;
+    *) # Plain sh, ksh, and anything we do not know.
         [ -f /etc/profile ] && . /etc/profile
         [ -f "$HOME/.profile" ] && . "$HOME/.profile"
         ;;
@@ -44,11 +61,6 @@ if [ -n "$REGION" ] && [ "$LANG" != "$REGION" ]; then
     export LC_NUMERIC=$REGION LC_TIME=$REGION LC_MONETARY=$REGION
     export LC_PAPER=$REGION LC_ADDRESS=$REGION LC_TELEPHONE=$REGION
     export LC_MEASUREMENT=$REGION
-fi
-
-if [ -z "$XDG_RUNTIME_DIR" ]; then
-    echo "XDG_RUNTIME_DIR is not set" >&2
-    exit 1
 fi
 
 # Use session-specific rundir created by the leader, so that stop scripts
@@ -101,28 +113,39 @@ write_pid gnome-shell $SHELL_PID
 # Wait for the gnome-shell to register its interface
 gdbus wait --session org.gnome.Shell
 
-# In GNOME 49+ on non-systemd, gnome-shell propagates display variables via
-# systemctl --user import-environment, which is a no-op on sysvinit.
-# Detect them from the filesystem and export to the dbus activation environment
-# so that apps launched by gnome-shell (e.g. Ptyxis) inherit them.
-if [ -z "$WAYLAND_DISPLAY" ]; then
-    for _n in 0 1 2 3; do
-        [ -S "$XDG_RUNTIME_DIR/wayland-$_n" ] && export WAYLAND_DISPLAY="wayland-$_n" && break
+# gnome-shell registers on D-Bus slightly before creating the Wayland socket,
+# so retry for up to 5 seconds to close the race window.
+_wayland_retries=50
+while [ -z "$WAYLAND_DISPLAY" ] && [ "$_wayland_retries" -gt 0 ]; do
+    sleep 0.1
+    for _f in "$XDG_RUNTIME_DIR"/wayland-[0-9]; do
+        [ -S "$_f" ] && export WAYLAND_DISPLAY="${_f##*/}" && break
     done
-    unset _n
-fi
-if [ -z "$DISPLAY" ]; then
-    for _n in 0 1 2 3; do
-        [ -S "/tmp/.X11-unix/X$_n" ] && export DISPLAY=":$_n" && break
+    unset _f
+    _wayland_retries=$((_wayland_retries - 1))
+done
+unset _wayland_retries
+
+# Xwayland is started eagerly by mutter; retry with the same window.
+_display_retries=50
+while [ -z "$DISPLAY" ] && [ "$_display_retries" -gt 0 ]; do
+    sleep 0.1
+    for _f in /tmp/.X11-unix/X[0-9]; do
+        [ -S "$_f" ] && export DISPLAY=":${_f##*/X}" && break
     done
-    unset _n
-fi
+    unset _f
+    _display_retries=$((_display_retries - 1))
+done
+unset _display_retries
+
 if [ -z "$XAUTHORITY" ]; then
+	sleep 0.1
     for _f in "$XDG_RUNTIME_DIR"/.mutter-Xwaylandauth.*; do
         [ -f "$_f" ] && export XAUTHORITY="$_f" && break
     done
     unset _f
 fi
+
 # Push the full session environment (locale, display, profile vars) to the
 # dbus activation environment. All display vars are now set above, so --all
 # is safe and avoids having to maintain an explicit list.
