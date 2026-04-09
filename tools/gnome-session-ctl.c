@@ -28,7 +28,6 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <systemd/sd-daemon.h>
 
 #include <glib.h>
 #include <glib-unix.h>
@@ -40,11 +39,6 @@
 #define GSM_PATH_DBUS      "/org/gnome/SessionManager"
 #define GSM_INTERFACE_DBUS "org.gnome.SessionManager"
 
-#define SYSTEMD_DBUS            "org.freedesktop.systemd1"
-#define SYSTEMD_PATH_DBUS       "/org/freedesktop/systemd1"
-#define SYSTEMD_INTERFACE_DBUS  "org.freedesktop.systemd1.Manager"
-
-#ifdef USE_SYSVINIT
 static gboolean
 async_run_cmd (gchar **argv, GError **error)
 {
@@ -62,7 +56,6 @@ sysvinit_run_session_stop (GError **error)
         gchar *argv[] = { stop_script, NULL };
         return async_run_cmd (argv, error);
 }
-#endif
 
 static GDBusConnection *
 get_session_bus (void)
@@ -104,64 +97,6 @@ do_signal_init (void)
                            error->message);
 }
 
-#ifndef USE_SYSVINIT
-static void
-do_start_unit (const gchar *unit, const char *mode)
-{
-        g_autoptr(GDBusConnection) connection = NULL;
-        g_autoptr(GVariant) reply = NULL;
-        g_autoptr(GError) error = NULL;
-
-        connection = get_session_bus ();
-        if (connection == NULL)
-                return;
-
-        reply = g_dbus_connection_call_sync (connection,
-                                             SYSTEMD_DBUS,
-                                             SYSTEMD_PATH_DBUS,
-                                             SYSTEMD_INTERFACE_DBUS,
-                                             "StartUnit",
-                                             g_variant_new ("(ss)",
-                                                            unit,
-                                                            mode),
-                                             NULL,
-                                             G_DBUS_CALL_FLAGS_NO_AUTO_START,
-                                             -1, NULL, &error);
-
-        if (error != NULL)
-                g_warning ("Failed to start shutdown target: %s",
-                           error->message);
-}
-
-static void
-do_restart_dbus (void)
-{
-        g_autoptr(GDBusConnection) connection = NULL;
-        g_autoptr(GVariant) reply = NULL;
-        g_autoptr(GError) error = NULL;
-
-        connection = get_session_bus ();
-        if (connection == NULL)
-                return;
-
-        reply = g_dbus_connection_call_sync (connection,
-                                             SYSTEMD_DBUS,
-                                             SYSTEMD_PATH_DBUS,
-                                             SYSTEMD_INTERFACE_DBUS,
-                                             "StopUnit",
-                                             g_variant_new ("(ss)",
-                                                            "dbus.service",
-                                                            "fail"),
-                                             NULL,
-                                             G_DBUS_CALL_FLAGS_NO_AUTO_START,
-                                             -1, NULL, &error);
-
-        if (error != NULL)
-                g_warning ("Failed to restart DBus service: %s",
-                           error->message);
-}
-#endif /* !USE_SYSVINIT */
-
 typedef struct {
         GMainLoop *loop;
         gint fifo_fd;
@@ -184,8 +119,6 @@ leader_fifo_io_cb (gint fd,
 {
         MonitorLeader *data = (MonitorLeader*) user_data;
 
-        sd_notify (0, "STOPPING=1");
-
         if (condition & G_IO_IN) {
                 char buf[1];
                 read (data->fifo_fd, buf, 1);
@@ -203,8 +136,8 @@ leader_fifo_io_cb (gint fd,
  * do_monitor_leader:
  *
  * Function to monitor the leader to ensure clean session shutdown and
- * propagation of this information to/from loginctl/GDM.
- * See main.c systemd_leader_run() for more information.
+ * propagation of this information to/from GDM.
+ * See leader-sysvinit.c for more information.
  */
 static void
 do_monitor_leader (void)
@@ -230,21 +163,18 @@ do_monitor_leader (void)
                 res = fstat (data.fifo_fd, &buf);
                 if (res < 0) {
                         g_warning ("Unable to monitor session leader: stat failed with error %m");
-                        sd_notifyf (0, "STATUS=Unable to monitor session leader: FD is not a FIFO %m");
                         close (data.fifo_fd);
                         data.fifo_fd = -1;
                 } else if (!(buf.st_mode & S_IFIFO)) {
                         g_warning ("Unable to monitor session leader: FD is not a FIFO");
-                        sd_notify (0, "STATUS=Unable to monitor session leader: FD is not a FIFO");
                         close (data.fifo_fd);
                         data.fifo_fd = -1;
                 } else {
-                        sd_notify (0, "STATUS=Watching session leader");
+                        g_debug ("Watching session leader");
                         g_unix_fd_add (data.fifo_fd, G_IO_HUP | G_IO_IN, leader_fifo_io_cb, &data);
                 }
         } else {
                 g_warning ("Unable to monitor session leader: Opening FIFO failed with %m");
-                sd_notifyf (0, "STATUS=Unable to monitor session leader: Opening FIFO failed with %m");
         }
 
         g_unix_signal_add (SIGTERM, leader_term_or_int_signal_cb, &data);
@@ -263,18 +193,12 @@ main (int argc, char *argv[])
         static gboolean   opt_shutdown;
         static gboolean   opt_monitor;
         static gboolean   opt_signal_init;
-        static gboolean   opt_restart_dbus;
-        static gboolean   opt_exec_stop_check;
         int     conflicting_options;
         GOptionContext *ctx;
         static const GOptionEntry options[] = {
-                { "shutdown", '\0', 0, G_OPTION_ARG_NONE, &opt_shutdown, N_("Start gnome-session-shutdown service"), NULL },
-                { "monitor", '\0', 0, G_OPTION_ARG_NONE, &opt_monitor, N_("Start gnome-session-shutdown service when receiving EOF or a single byte on stdin"), NULL },
+                { "shutdown", '\0', 0, G_OPTION_ARG_NONE, &opt_shutdown, N_("Run gnome-session-stop to shut down the session"), NULL },
+                { "monitor", '\0', 0, G_OPTION_ARG_NONE, &opt_monitor, N_("Monitor the session leader FIFO and shut down on EOF or a single byte"), NULL },
                 { "signal-init", '\0', 0, G_OPTION_ARG_NONE, &opt_signal_init, N_("Signal initialization done to gnome-session"), NULL },
-#ifndef USE_SYSVINIT
-                { "restart-dbus", '\0', 0, G_OPTION_ARG_NONE, &opt_restart_dbus, N_("Restart dbus service if it is running"), NULL },
-                { "exec-stop-check", '\0', 0, G_OPTION_ARG_NONE, &opt_exec_stop_check, N_("Run from ExecStopPost to start gnome-session-shutdown service on service failure"), NULL },
-#endif
                 { NULL },
         };
 
@@ -299,48 +223,23 @@ main (int argc, char *argv[])
                 conflicting_options++;
         if (opt_signal_init)
                 conflicting_options++;
-        if (opt_restart_dbus)
-                conflicting_options++;
-        if (opt_exec_stop_check)
-                conflicting_options++;
         if (conflicting_options != 1) {
                 g_printerr (_("Program needs exactly one parameter"));
                 exit (1);
         }
 
-        sd_notify (0, "READY=1");
-
         if (opt_signal_init) {
                 do_signal_init ();
-        } else if (opt_restart_dbus) {
-#ifndef USE_SYSVINIT
-                do_restart_dbus ();
-#endif
         } else if (opt_shutdown) {
-#ifdef USE_SYSVINIT
                 if (!sysvinit_run_session_stop (&error))
                         g_error ("Failed to run session stop: %s",
                                  error ? error->message : "(no message)");
-#else
-                do_start_unit ("gnome-session-shutdown.target", "replace-irreversibly");
-#endif
         } else if (opt_monitor) {
                 do_monitor_leader ();
-#ifdef USE_SYSVINIT
                 if (!sysvinit_run_session_stop (&error))
                         g_warning ("Failed to run session stop: %s",
                                    error ? error->message : "(no message)");
-#else
-                do_start_unit ("gnome-session-shutdown.target", "replace-irreversibly");
-#endif
-        } else if (opt_exec_stop_check) {
-#ifndef USE_SYSVINIT
-                /* Start failed target if the restart limit was hit */
-                if (g_strcmp0 ("start-limit-hit", g_getenv ("SERVICE_RESULT")) == 0) {
-                        do_start_unit ("gnome-session-shutdown.target", "fail");
-                }
-#endif
-       } else {
+        } else {
                 g_assert_not_reached ();
         }
 
