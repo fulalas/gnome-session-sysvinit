@@ -17,8 +17,11 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <config.h>
 
 #include <glib.h>

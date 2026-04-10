@@ -96,7 +96,6 @@ elogind_dep = dependency('libelogind', version: '>=209', required: true)
 
 use_sysvinit = true
 
-config_h.set('USE_SYSVINIT', use_sysvinit)
 
 configure_file(
   output: 'config.h',
