@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # gnome-session-start - Start GNOME session components for sysvinit systems
 # Usage: gnome-session-start <session_type> <session_name>
 #   session_type: wayland
@@ -91,7 +91,8 @@ write_pid() {
 
 # Start session D-Bus service
 /usr/libexec/gnome-session-service --session="$SESSION_NAME" &
-write_pid gnome-session-service $!
+SERVICE_PID=$!
+write_pid gnome-session-service $SERVICE_PID
 
 # Start session monitor (reads the leader FIFO)
 /usr/libexec/gnome-session-ctl --monitor &
@@ -162,7 +163,6 @@ unset _gsd daemon
 # Signal session initialization complete
 /usr/libexec/gnome-session-ctl --signal-init
 
-# Wait for gnome-shell to exit
-# When gnome-shell exits, the session is effectively over
-wait $SHELL_PID
+# Wait for gnome-shell or gnome-session-service to exit.
+wait -n $SHELL_PID $SERVICE_PID 2>/dev/null
 exit $?

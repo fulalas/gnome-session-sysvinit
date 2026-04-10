@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # gnome-session-stop - Stop GNOME session components for sysvinit systems
 # Sends SIGTERM to all session processes tracked by PID files
 
