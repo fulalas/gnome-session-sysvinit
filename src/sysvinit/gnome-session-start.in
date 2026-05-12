@@ -90,12 +90,12 @@ write_pid() {
 }
 
 # Start session D-Bus service
-/usr/libexec/gnome-session-service --session="$SESSION_NAME" &
+@LIBEXECDIR@/gnome-session-service --session="$SESSION_NAME" &
 SERVICE_PID=$!
 write_pid gnome-session-service $SERVICE_PID
 
 # Start session monitor (reads the leader FIFO)
-/usr/libexec/gnome-session-ctl --monitor &
+@LIBEXECDIR@/gnome-session-ctl --monitor &
 write_pid gnome-session-monitor $!
 
 # Wait for the gnome-session-monitor to claim its bus name
@@ -152,7 +152,7 @@ fi
 dbus-update-activation-environment --all
 
 # Start GNOME Settings Daemon components
-for _gsd in /usr/libexec/gsd-*; do
+for _gsd in @LIBEXECDIR@/gsd-*; do
     [ -x "$_gsd" ] || continue
     daemon="${_gsd##*/}"
     "$_gsd" &
@@ -161,7 +161,7 @@ done
 unset _gsd daemon
 
 # Signal session initialization complete
-/usr/libexec/gnome-session-ctl --signal-init
+@LIBEXECDIR@/gnome-session-ctl --signal-init
 
 # Wait for gnome-shell or gnome-session-service to exit.
 wait -n $SHELL_PID $SERVICE_PID 2>/dev/null

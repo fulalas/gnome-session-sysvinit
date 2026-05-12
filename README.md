@@ -4,11 +4,11 @@ This is a port of [gnome-session-openrc](https://github.com/swagtoy/gnome-sessio
 
 It uses simple shell scripts (`gnome-session-start` and `gnome-session-stop`) to manage session components. The session leader spawns the start script and monitors a FIFO for shutdown signaling.
 
-This requires **elogind** for session/seat management.
+# Building/Installing
 
-# Building
+First, this requires GNOME Session with [swagtoy's no-systemd patch](https://gitlab.gnome.org/swagtoy/gnome-session/-/commit/419191d3897957bd8cd325f2167f3c8663969a13), [Dudemanguy's elogind patch](https://gitlab.gnome.org/GNOME/gnome-session/-/merge_requests/106), or any other means of disabling the official `gnome-session-ctl`.
 
-Simply clone this repository and copy/replace its content to `gnome-session` source code folder, and build it normally.
+This project can be built with the standard `meson` workflow, ensuring the main GNOME session and this project are built with the same `--prefix` setting. Once it is installed, launching `gnome-session` will work.
 
 # How it works
 
