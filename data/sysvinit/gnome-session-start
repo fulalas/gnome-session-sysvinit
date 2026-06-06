@@ -149,6 +149,8 @@ fi
 # Push the full session environment (locale, display, profile vars) to the
 # dbus activation environment. All display vars are now set above, so --all
 # is safe and avoids having to maintain an explicit list.
+# We need to sleep to let all display vars catch up before dbus activation.
+sleep 5
 dbus-update-activation-environment --all
 
 # Start GNOME Settings Daemon components
