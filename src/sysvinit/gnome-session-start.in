@@ -70,13 +70,6 @@ PIDDIR="${GNOME_SESSION_RUNDIR:-$XDG_RUNTIME_DIR}"
 export XDG_CURRENT_DESKTOP=GNOME
 export XDG_SESSION_TYPE="$SESSION_TYPE"
 
-# Ensure the session D-Bus address is set
-if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
-    if [ -S "$XDG_RUNTIME_DIR/bus" ]; then
-        export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
-    fi
-fi
-
 # Add flatpak export paths if available
 for d in "$HOME/.local/share/flatpak/exports/share" "/var/lib/flatpak/exports/share"; do
     if [ -d "$d" ]; then
