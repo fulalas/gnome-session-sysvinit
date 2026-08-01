@@ -107,7 +107,7 @@ if [ "$SESSION_NAME" = "gnome-login" ]; then
 	SHELL_ARGS="--wayland --mode=gdm"
 fi
 
-/usr/bin/gnome-shell $SHELL_ARGS &
+gnome-shell $SHELL_ARGS &
 SHELL_PID=$!
 write_pid gnome-shell $SHELL_PID
 

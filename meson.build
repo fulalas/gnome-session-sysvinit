@@ -5,44 +5,38 @@ project(
   meson_version: '>= 0.61.0'
 )
 
-session_version = meson.project_version()
-session_api_name = '@0@-@1@'.format(meson.project_name(), session_version.split('.')[0])
-
 session_prefix = get_option('prefix')
-session_datadir = join_paths(session_prefix, get_option('datadir'))
 session_libexecdir = join_paths(session_prefix, get_option('libexecdir'))
-
-set_defines = [
-  # package
-  ['PACKAGE', meson.project_name()],
-  ['PACKAGE_VERSION', session_version],
-  ['VERSION', session_version],
-]
 
 glib_req_version = '>= 2.82.0'
 
 session_bin_deps = [
   dependency('glib-2.0', version: glib_req_version),
   dependency('gio-2.0', version: glib_req_version),
-  dependency('gio-unix-2.0', version: glib_req_version),
-  dependency('libelogind', version: '>=209', required: true),
 ]
 
-pkg = import('pkgconfig')
+# Nothing here links against elogind, but the session needs it at runtime
+# (gnome-session-service uses it), so fail at build time instead of at login.
+dependency('libelogind', version: '>= 209', required: true)
 
 top_inc = include_directories('.')
 
-conf_data = configuration_data()
-conf_data.set_quoted('LIBEXECDIR', session_libexecdir)
+# config.h needs the path quoted for #define, the shell script needs it bare,
+# so the two cannot share one configuration_data.
+config_h_data = configuration_data()
+config_h_data.set_quoted('LIBEXECDIR', session_libexecdir)
 
-configure_file(output: 'config.h', configuration: conf_data)
+configure_file(output: 'config.h', configuration: config_h_data)
+
+script_data = configuration_data()
+script_data.set('LIBEXECDIR', session_libexecdir)
 
 subdir('src')
 
-summary_dirs = {
-  'prefix': get_option('prefix'),
-  'datadir': session_datadir,
-  'libexecdir': session_libexecdir,
-}
-
-summary(summary_dirs, section: 'Directories')
+summary(
+  {
+    'prefix': session_prefix,
+    'libexecdir': session_libexecdir,
+  },
+  section: 'Directories',
+)

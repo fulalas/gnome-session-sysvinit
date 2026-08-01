@@ -17,17 +17,19 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
+
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <config.h>
 
 #include <glib.h>
 #include <glib-unix.h>
 #include <gio/gio.h>
-#include <sys/syslog.h>
 
 typedef struct {
         GDBusConnection *session_bus;

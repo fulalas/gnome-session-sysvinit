@@ -20,7 +20,6 @@
 
 #include <config.h>
 
-#include <locale.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,7 +31,6 @@
 #include <glib.h>
 #include <glib-unix.h>
 #include <glib/gstdio.h>
-#include <glib/gi18n.h>
 #include <gio/gio.h>
 
 #define GSM_SERVICE_DBUS   "org.gnome.SessionManager"
@@ -196,9 +194,9 @@ main (int argc, char *argv[])
         int     conflicting_options;
         GOptionContext *ctx;
         static const GOptionEntry options[] = {
-                { "shutdown", '\0', 0, G_OPTION_ARG_NONE, &opt_shutdown, N_("Run gnome-session-stop to shut down the session"), NULL },
-                { "monitor", '\0', 0, G_OPTION_ARG_NONE, &opt_monitor, N_("Monitor the session leader FIFO and shut down on EOF or a single byte"), NULL },
-                { "signal-init", '\0', 0, G_OPTION_ARG_NONE, &opt_signal_init, N_("Signal initialization done to gnome-session"), NULL },
+                { "shutdown", '\0', 0, G_OPTION_ARG_NONE, &opt_shutdown, "Run gnome-session-stop to shut down the session", NULL },
+                { "monitor", '\0', 0, G_OPTION_ARG_NONE, &opt_monitor, "Monitor the session leader FIFO and shut down on EOF or a single byte", NULL },
+                { "signal-init", '\0', 0, G_OPTION_ARG_NONE, &opt_signal_init, "Signal initialization done to gnome-session", NULL },
                 { NULL },
         };
 
@@ -218,7 +216,7 @@ main (int argc, char *argv[])
         if (opt_signal_init)
                 conflicting_options++;
         if (conflicting_options != 1) {
-                g_printerr (_("Program needs exactly one parameter"));
+                g_printerr ("Program needs exactly one parameter\n");
                 exit (1);
         }
 
