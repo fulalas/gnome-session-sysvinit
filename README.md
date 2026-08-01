@@ -10,11 +10,9 @@ The version number tracks the GNOME Session release this works with.
 
 # Building/Installing
 
-First, this requires GNOME Session with [swagtoy's no-systemd patch](https://gitlab.gnome.org/swagtoy/gnome-session/-/commit/419191d3897957bd8cd325f2167f3c8663969a13), [Dudemanguy's elogind patch](https://gitlab.gnome.org/GNOME/gnome-session/-/merge_requests/106), or any other means of disabling the official `gnome-session-ctl`.
+First, this requires GNOME Session with [no-systemd patch](https://raw.githubusercontent.com/porteux/porteux/refs/heads/2.8/003-gnome/gnome/gnome-session/remove-systemd.patch).
 
-This project can be built with the standard `meson` workflow, ensuring the main GNOME session and this project are built with the same `--prefix` setting. Once it is installed, launching `gnome-session` will work.
-
-`gnome-shell` is looked up in `PATH`, so it does not need to share that prefix.
+This project can be built with the standard `meson` workflow, ensuring the main GNOME session and this project are built with the same `--prefix` setting. Once it is installed, launching `gnome-session` will work as expected.
 
 # How it works
 
