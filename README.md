@@ -10,9 +10,11 @@ The version number tracks the GNOME Session release this works with.
 
 # Building/Installing
 
-First, this requires GNOME Session with [no-systemd patch](https://raw.githubusercontent.com/porteux/porteux/refs/heads/2.8/003-gnome/gnome/gnome-session/remove-systemd.patch).
+This project can be built with the standard `meson` workflow, ensuring the main GNOME session and this project are built with the same `--prefix` setting. Once it is installed, launching `gnome-session` will work.
 
-This project can be built with the standard `meson` workflow, ensuring the main GNOME session and this project are built with the same `--prefix` setting. Once it is installed, launching `gnome-session` will work as expected.
+It's recommended to patch the official GNOME Session with [no gnome-session-ctl/systemd patch](https://raw.githubusercontent.com/porteux/porteux/refs/heads/2.8/003-gnome/gnome/gnome-session/remove-systemd.patch).
+
+Building the official GNOME Session without the patch above might work, but make sure both `gnome-session-ctl` and `gnome-session-init-worker` from this project replace the ones installed in `/usr/libexec`.
 
 # How it works
 
