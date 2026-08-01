@@ -14,7 +14,7 @@ This project can be built with the standard `meson` workflow, ensuring the main 
 
 It's recommended to patch the official GNOME Session with [no gnome-session-ctl/systemd patch](https://raw.githubusercontent.com/porteux/porteux/refs/heads/2.8/003-gnome/gnome/gnome-session/remove-systemd.patch).
 
-Building the official GNOME Session without the patch above might work, but make sure both `gnome-session-ctl` and `gnome-session-init-worker` from this project replace the ones installed in `/usr/libexec`.
+Building the official GNOME Session without the patch above might work, but make sure both `gnome-session-ctl` and `gnome-session-init-worker` from this project replace the ones installed by official GNOME Session in `/usr/libexec`.
 
 # How it works
 
