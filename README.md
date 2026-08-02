@@ -4,7 +4,7 @@ This is a port of [gnome-session-openrc](https://github.com/swagtoy/gnome-sessio
 
 It uses simple shell scripts (`gnome-session-start` and `gnome-session-stop`) to manage session components. The session leader spawns the start script and monitors a FIFO for shutdown signaling.
 
-Important: it doesn't replace the official GNOME Session, so both must be installed for a working GNOME desktop.
+**Important**: it doesn't replace the official GNOME Session, so both must be installed for a working GNOME desktop.
 
 # Building
 
