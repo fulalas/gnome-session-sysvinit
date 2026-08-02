@@ -15,7 +15,7 @@ It requires **elogind** for session/seat management and can be built with the `m
 	--buildtype=release \
 	--libexecdir=/usr/libexec
 
-It's recommended to patch the official GNOME Session with [no gnome-session-ctl/systemd patch](https://raw.githubusercontent.com/porteux/porteux/refs/heads/2.8/003-gnome/gnome/gnome-session/remove-systemd.patch). Building without this patch might work, but make sure both `gnome-session-ctl` and `gnome-session-init-worker` from this project replace the ones installed by the official GNOME Session in `/usr/libexec`.
+It's recommended to patch the official GNOME Session with [no gnome-session-ctl/systemd](https://raw.githubusercontent.com/porteux/porteux/refs/heads/2.8/003-gnome/gnome/gnome-session/remove-systemd.patch) patch. Building without this patch might work, but make sure both `gnome-session-ctl` and `gnome-session-init-worker` from this project replace the ones installed by the official GNOME Session in `/usr/libexec`.
 
 # Usage
 
